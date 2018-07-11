@@ -10,8 +10,9 @@ server.listen(8081, function() {
     io.on('connection', function(socket) {
       // notify other players of joined player
       socket.broadcast.emit("playerJoined", { id: socket.id });
+      io.to(socket.id).emit("currentPlayers", { players: Object.keys(fields), fields });
 
-      console.log('User connected. ID:', socket.id);
+      console.log('User connected. ID:', socket.id, "currentPlayers:", Object.keys(fields));
 
       socket.on('disconnect', function() {
         socket.broadcast.emit("playerLeft", { id: socket.id });
