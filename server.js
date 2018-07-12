@@ -5,6 +5,10 @@ var io = require('socket.io').listen(server);
 
 const fields = {};
 
+app.get('/', (req, res) => {
+  res.send("Server is running");
+});
+
 server.listen(process.env.port || 8081, function() { 
     console.log('Listening on ' + server.address().port);
     io.on('connection', function(socket) {
