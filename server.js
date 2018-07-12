@@ -5,7 +5,7 @@ var io = require('socket.io').listen(server);
 
 const fields = {};
 
-server.listen(8081, function() { 
+server.listen(process.env.port || 8081, function() { 
     console.log('Listening on ' + server.address().port);
     io.on('connection', function(socket) {
       // notify other players of joined player
