@@ -12,19 +12,19 @@ server.listen(8081, function() {
       socket.broadcast.emit("playerJoined", { id: socket.id });
       io.to(socket.id).emit("currentPlayers", { players: Object.keys(fields), fields });
 
-      console.log('User connected. ID:', socket.id, "currentPlayers:", Object.keys(fields));
+      //console.log('User connected. ID:', socket.id, "currentPlayers:", Object.keys(fields));
 
       socket.on('disconnect', function() {
         socket.broadcast.emit("playerLeft", { id: socket.id });
-        console.log('User disconnected. ID:', socket.id);
+        //console.log('User disconnected. ID:', socket.id);
         delete fields[socket.id];
       });
 
       socket.on('fieldUpdate', (args) => {
-        console.log('fieldUpdate', socket.id, Date.now());
-        fields[socket.id] = args.fieldState;
         // send event to everyone but the original sender
+        //console.log('fieldUpdate', socket.id, Date.now());
         socket.broadcast.emit('fieldUpdate', Object.assign(args, { id: socket.id }));
+        fields[socket.id] = args.fieldState;
       })
     });
 });
