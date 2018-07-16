@@ -1,6 +1,9 @@
 import * as socketIo from 'socket.io';
 import * as http from 'http';
 
+import Match from './match';
+import MatchPlayer from './player/player';
+import ConnectionStatus from './player/connectionStatus';
 
 interface Result {
   success: boolean,
@@ -11,12 +14,13 @@ class MatchServer {
   private _socketServer: SocketIO.Server;
 
   private _runningMatches: Array<Match> = [];
-  private _newMatchId: number = 1000;
 
   private static MATCH_ROOM_PREFIX: string = "match-";
   private static MATCHMAKING_ROOM: string = "matchmaking";
   private static MIN_PLAYERS: number = 2;
   private static MAX_PLAYERS: number = 5;
+
+  private socketToPlayerMap: Map<string, MatchPlayer> = new Map<string, MatchPlayer>();
 
 
   constructor(httpServer: http.Server, socketServer: SocketIO.Server) {
@@ -48,7 +52,7 @@ class MatchServer {
         });
 
         socket.on('joinMatch', async (socketData, callback) => {
-          const result = await matchServer.addPlayerToMatch(socket, socketData.matchId, socketData.displayName);
+          const result = await matchServer.addPlayerToMatch(socket, this.getPlayerFromSocketId(socket.id), socketData.matchId);
           if (result["success"]) {
             matchServer.removePlayerFromMatchmaking(socket);
             callback(true);
@@ -72,7 +76,7 @@ class MatchServer {
     return socket.rooms.filter(b => b.indexOf(MatchServer.MATCH_ROOM_PREFIX) > -1);
   }
 
-  private isPlayerInMatch(socket) {
+  private isPlayerInMatch(socket): boolean {
     const matches = this.getJoinedMatchesOfPlayer(socket);
     if (matches.length > 1) {
       console.error("Player is in more than one match:", socket.id, socket.rooms);
@@ -97,18 +101,18 @@ class MatchServer {
     socket.leave(MatchServer.MATCHMAKING_ROOM);
   }
 
-  private addPlayerToMatch(socket, matchId, displayName) {
+  private addPlayerToMatch(socket: SocketIO.Socket, player: MatchPlayer, matchId: number) {
     return new Promise<Result>((resolve) => {
-      const match = this._runningMatches.find(match => match.id == matchId);
+      const match = this.getMatchFromId(matchId);
       if (!match) {
         resolve({ success: false, message: 'Match does not exist.' });
       }
-      if (!this.isMatchJoinable(match)) {
+      if (!match.isJoinable) {
         resolve({ success: false, message: 'Match is not joinable anymore.' });
       }
       socket.join(this.getMatchRoomName(matchId), () => {
-        // TODO: add player to runningMatches array
-        socket.server.to(socket.id).emit('matchInfo', this._runningMatches[matchId]);
+        match.addPlayer(player);
+        socket.server.to(socket.id).emit('matchInfo', match.serialize());
         resolve({ success: true, message: 'Successfully joined match.' });
       });
     })
@@ -116,13 +120,28 @@ class MatchServer {
 
   private removePlayerFromMatch(socket) {
     for (let match of this.getJoinedMatchesOfPlayer(socket)) {
-      socket.leave(this.getMatchRoomName(match));
-      // TODO: mark player as left, update match info
+      const player = this.getPlayerFromSocketId(socket.id);
+      player.connectionStatus = ConnectionStatus.Disconnected;
+      socket.leave(this.getMatchRoomName(match)); // TODO: move this & line above into something like player.leaveMatch();
+      this.destroyPlayer(player);
     }
   }
+  
+  private getMatchFromId(matchId: number): Match {
+    return this._runningMatches.find(match => match.id == matchId);
+  }
 
-  private isMatchJoinable(match) {
-    return match.joinUntil > new Date() && match.players.length < match.maxPlayers;
+  private getPlayerFromSocketId(socketId: string): MatchPlayer {
+    let player = this.socketToPlayerMap.get(socketId);
+    if (!player) {
+      player = new MatchPlayer(socketId);
+      this.socketToPlayerMap.set(socketId, player);
+    }
+    return player;
+  }
+
+  private destroyPlayer(player: MatchPlayer) {
+    this.socketToPlayerMap.delete(player.socketId);
   }
 
   private runMatchmaking(server, triggeringSocket) {
@@ -130,10 +149,10 @@ class MatchServer {
     const clientsInMatchmaking = server.in(MatchServer.MATCHMAKING_ROOM).clients;
     server.to(MatchServer.MATCHMAKING_ROOM).emit('matchmakingUpdate', { 'playersInQueue': clientsInMatchmaking.length });
 
-    const joinableMatchInfo = this._runningMatches.find(match => this.isMatchJoinable(match));
-    if (joinableMatchInfo) {
-      console.log('Joinable match found.');
-      server.to(triggeringSocket.id).emit('matchReady', joinableMatchInfo);
+    const joinableMatch = this._runningMatches.find(match => match.isJoinable);
+    if (joinableMatch) {
+      console.log('Joinable match found, notifying', triggeringSocket.id);
+      server.to(triggeringSocket.id).emit('matchReady', joinableMatch);
     } else {
       if (clientsInMatchmaking.length > MatchServer.MIN_PLAYERS) {
         console.log('Creating a new match.');
