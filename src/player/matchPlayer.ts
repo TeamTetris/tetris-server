@@ -10,6 +10,7 @@ class MatchPlayer {
   public connectionStatus: ConnectionStatus;
   public scoreboardStatus: ScoreboardStatus;
   public playStatus: PlayStatus;
+  public field: Object;
 
 
   public get socketId(): string {

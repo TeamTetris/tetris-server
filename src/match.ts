@@ -4,7 +4,7 @@ import SerializedMatch from './serializedMatch'
 import ConnectionStatus from './player/connectionStatus';
 import PlayStatus from './player/playStatus';
 import ScoreboardStatus from './player/scoreboardStatus';
-import MatchServer from './matchServer';
+import PlayerUpdate from './player/playerUpdate';
 
 class Match {
   private static nextMatchId: number = 1000;
@@ -25,13 +25,15 @@ class Match {
     return new Date(Date.now() + 1000 * secondOffset)
   }
 
-  constructor(maxPlayers: number) {
+  constructor(maxPlayers: number, sendDataToPlayers: Function) {
     this._id = Match.nextMatchId++;
     this.players = [];
     this.maxPlayers = maxPlayers;
+    this.sendDataToPlayers = sendDataToPlayers;
     this.startTime = Match.getFutureDate(Match.startTimeOffset); // start match in 1 minute
     this.joinUntil = Match.getFutureDate(Match.startTimeOffset * 0.75); // join within 45 seconds
     this.generateNextElimination(Match.startTimeOffset);
+    setInterval(sendDataToPlayers.bind(this, [this]), 2500);
   }
 
   public get isActive(): boolean {
@@ -45,10 +47,30 @@ class Match {
   public addPlayer(player: MatchPlayer): boolean {
     if (this.isJoinable) {
       this.players.push(player);
+      this.sendDataToPlayers();
       return true;
     } else {
       return false;
     }
+  }
+
+  private calculatePlacements() {
+    this.players.sort((a, b) => {
+      return b.points - a.points; // descending sort
+    });
+    let index = 1;
+    for (let player of this.players) {
+      player.placement = index++;
+    }
+  }
+
+  public receivePlayerUpdate(playerUpdate: PlayerUpdate) {
+    const player = this.players.find(p => p.socketId == playerUpdate.socketId);
+    player.points = playerUpdate.points;
+    if (playerUpdate.field) {
+      player.field = playerUpdate.field;
+    }
+    this.calculatePlacements();
   }
 
   public serialize(): SerializedMatch {
@@ -72,7 +94,9 @@ class Match {
     const timeUntilEliminationWithOffset = timeUntilElimination + eliminationOffset;
     this.nextElimination = { playerAmount, time: Match.getFutureDate(timeUntilEliminationWithOffset) };
 
-    this.sendDataToPlayers();
+    // if (!doNotUpdatePlayers) {
+    //   this.sendDataToPlayers();
+    // }
 
     setTimeout(this.executeElimination, timeUntilEliminationWithOffset * 1000);
   }
@@ -99,7 +123,7 @@ class Match {
     if (!lastElimination) {
       this.generateNextElimination();
     } else {
-      this.sendDataToPlayers();
+      // this.sendDataToPlayers();
     }
   }
 }

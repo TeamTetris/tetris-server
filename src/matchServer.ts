@@ -64,6 +64,12 @@ class MatchServer {
         socket.on('leaveMatch', function () {
           matchServer.removePlayerFromMatch(socket);
         });
+
+        socket.on('matchUpdate', (socketData) => {
+          matchServer
+            .getMatchFromId(socketData.matchId)
+            .receivePlayerUpdate({ socketId: socket.id, points: socketData.points, field: socketData.field });
+        });
       });
     });
   }
@@ -161,8 +167,8 @@ class MatchServer {
     } else {
       if (clientsInMatchmaking.length > MatchServer.MIN_PLAYERS) {
         console.log('Creating a new match.');
-        const matchInfo = this.createMatch();
-        server.to(MatchServer.MATCHMAKING_ROOM).emit('matchReady', matchInfo);
+        const match = this.createMatch();
+        server.to(MatchServer.MATCHMAKING_ROOM).emit('matchReady', match.serialize());
       } else {
         console.log('Not enough players to start a game. & No open game.');
       }
@@ -170,9 +176,13 @@ class MatchServer {
   }
 
   private createMatch(): Match {
-    const newMatch = new Match(MatchServer.MAX_PLAYERS);
+    const newMatch = new Match(MatchServer.MAX_PLAYERS, this.sendMatchUpdate);
     this._runningMatches.push(newMatch);
     return newMatch;
+  }
+
+  private sendMatchUpdate(match: Match) {
+    this._socketServer.to(this.getMatchRoomName(match.id)).emit('matchUpdate', match.serialize());
   }
 }
 
