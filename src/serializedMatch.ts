@@ -1,4 +1,4 @@
-import MatchPlayer from './player/player'
+import MatchPlayer from './player/matchPlayer'
 import Elimination from './elimination';
 
 interface SerializedMatch {

@@ -2,7 +2,7 @@ import * as socketIo from 'socket.io';
 import * as http from 'http';
 
 import Match from './match';
-import MatchPlayer from './player/player';
+import MatchPlayer from './player/matchPlayer';
 import ConnectionStatus from './player/connectionStatus';
 
 interface Result {
