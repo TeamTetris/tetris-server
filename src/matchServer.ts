@@ -43,6 +43,7 @@ class MatchServer {
         });
 
         socket.on('joinMatchmaking', () => {
+          console.log('join matchmaking, socket.id:', socket.id);
           matchServer.addPlayerToMatchmaking(socket);
         });
 
@@ -73,12 +74,12 @@ class MatchServer {
     });
   }
 
-  private isPlayerInMatchmakingQueue(socket) {
-    return socket.rooms.indexOf(MatchServer.MATCHMAKING_ROOM) > -1;
+  private isPlayerInMatchmakingQueue(socket: SocketIO.Socket) {
+    return socket.rooms && Object.keys(socket.rooms).indexOf(MatchServer.MATCHMAKING_ROOM) > -1;
   }
 
-  private getJoinedMatchesOfPlayer(socket) {
-    return socket.rooms.filter(b => b.indexOf(MatchServer.MATCH_ROOM_PREFIX) > -1);
+  private getJoinedMatchesOfPlayer(socket: SocketIO.Socket) {
+    return Object.keys(socket.rooms).filter(b => b.indexOf(MatchServer.MATCH_ROOM_PREFIX) > -1);
   }
 
   private isPlayerInMatch(socket): boolean {
