@@ -1,5 +1,5 @@
 interface Elimination {
-  timeInSeconds: number,
+  time: Date,
   playerAmount: number
 }
 

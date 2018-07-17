@@ -29,7 +29,7 @@ class MatchServer {
     this._listenSockets(httpServer, socketServer);
   }
 
-  private _listenSockets(httpServer, socketServer): void {
+  private _listenSockets(httpServer, socketServer: SocketIO.Server): void {
     let matchServer = this;
     httpServer.listen(process.env.PORT || 8081, function () {
       console.log('Listening on ' + httpServer.address().port);
@@ -39,7 +39,7 @@ class MatchServer {
             matchServer.removePlayerFromMatchmaking(socket.id); // REDUNDANT, socket.io already has sockets leave all rooms on disconnect
           }
           if (matchServer.isPlayerInMatch(socket)) {
-            matchServer.removePlayerFromMatch(socket); // REDUNDANT, socket.io already has sockets leave all rooms on disconnect
+            matchServer.removePlayerFromMatch(socket); 
           }
         });
 
@@ -111,9 +111,14 @@ class MatchServer {
         resolve({ success: false, message: 'Match is not joinable anymore.' });
       }
       socket.join(this.getMatchRoomName(matchId), () => {
-        match.addPlayer(player);
-        socket.server.to(socket.id).emit('matchInfo', match.serialize());
-        resolve({ success: true, message: 'Successfully joined match.' });
+        const success = match.addPlayer(player);
+        if (success) {
+          socket.server.to(socket.id).emit('matchInfo', match.serialize());
+          resolve({ success: true, message: 'Successfully joined match.' });
+        } else {
+          socket.leave(this.getMatchRoomName(matchId));
+          resolve({ success: false, message: 'Match is not joinable anymore.' });
+        }
       });
     })
   }
