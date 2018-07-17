@@ -10,7 +10,7 @@ class Match {
   private static nextMatchId: number = 1000;
   private static startTimeOffset: number = 60;
   private _id: number;
-  private players: Array<MatchPlayer>;
+  private players: MatchPlayer[];
   private maxPlayers: number;
   private startTime: Date;
   private joinUntil: Date;

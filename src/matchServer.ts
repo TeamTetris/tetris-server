@@ -13,7 +13,7 @@ interface Result {
 class MatchServer {
   private _socketServer: SocketIO.Server;
 
-  private _runningMatches: Array<Match> = [];
+  private _runningMatches: Match[] = [];
 
   private static MATCH_ROOM_PREFIX: string = "match-";
   private static MATCHMAKING_ROOM: string = "matchmaking";
@@ -162,7 +162,7 @@ class MatchServer {
     const joinableMatch = this._runningMatches.find(match => match.isJoinable);
     if (joinableMatch) {
       console.log('Joinable match found, notifying', triggeringSocket.id);
-      server.to(triggeringSocket.id).emit('matchReady', joinableMatch);
+      server.to(triggeringSocket.id).emit('matchReady', joinableMatch.serialize());
     } else {
       if (clientsInMatchmaking.length > MatchServer.MIN_PLAYERS) {
         console.log('Creating a new match.');

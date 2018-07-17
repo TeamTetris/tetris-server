@@ -2,7 +2,7 @@ import MatchPlayer from './player/matchPlayer'
 
 interface SerializedMatch {
   id: number;
-  players: Array<MatchPlayer>;
+  players: MatchPlayer[];
   startTime: Date;
   joinUntil: Date;
   nextElimination: Date; 
