@@ -55,6 +55,7 @@ class Match {
   }
 
   private calculatePlacements() {
+    // TODO: mark Spotlighted & Endangered
     this.players.sort((a, b) => {
       return b.points - a.points; // descending sort
     });

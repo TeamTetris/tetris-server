@@ -22,7 +22,7 @@ class MatchPlayer {
     this._socketId = socketId;
     this.points = 0;
     this.placement = -1;
-    this.connectionStatus = ConnectionStatus.Connecting;
+    this.connectionStatus = ConnectionStatus.Connected; // TODO: implement connecting state?
     this.scoreboardStatus = ScoreboardStatus.Regular;
     this.playStatus = PlayStatus.Playing;
   }

@@ -25,7 +25,6 @@ class MatchServer {
 
   constructor(httpServer: http.Server, socketServer: SocketIO.Server) {
     this._socketServer = socketServer;
-
     this._listenSockets(httpServer, socketServer);
   }
 
@@ -36,7 +35,7 @@ class MatchServer {
       socketServer.on('connection', function (socket) {
         socket.on('disconnect', function () {
           if (matchServer.isPlayerInMatchmakingQueue(socket)) {
-            matchServer.removePlayerFromMatchmaking(socket.id); // REDUNDANT, socket.io already has sockets leave all rooms on disconnect
+            matchServer.removePlayerFromMatchmaking(socket.id); // TODO: REDUNDANT, socket.io already has sockets leave all rooms on disconnect
           }
           if (matchServer.isPlayerInMatch(socket)) {
             matchServer.removePlayerFromMatch(socket); 
