@@ -35,7 +35,7 @@ class MatchServer {
       socketServer.on('connection', function (socket) {
         socket.on('disconnect', function () {
           if (matchServer.isPlayerInMatchmakingQueue(socket)) {
-            matchServer.removePlayerFromMatchmaking(socket.id); // TODO: REDUNDANT, socket.io already has sockets leave all rooms on disconnect
+            matchServer.removePlayerFromMatchmaking(socket); // TODO: REDUNDANT, socket.io already has sockets leave all rooms on disconnect
           }
           if (matchServer.isPlayerInMatch(socket)) {
             matchServer.removePlayerFromMatch(socket); 
@@ -98,12 +98,12 @@ class MatchServer {
     return MatchServer.MATCH_ROOM_PREFIX + matchId;
   }
 
-  private addPlayerToMatchmaking(socket) {
+  private addPlayerToMatchmaking(socket: SocketIO.Socket) {
     socket.join(MatchServer.MATCHMAKING_ROOM);
     this.runMatchmaking(socket.server, socket);
   }
 
-  private removePlayerFromMatchmaking(socket) {
+  private removePlayerFromMatchmaking(socket: SocketIO.Socket) {
     socket.leave(MatchServer.MATCHMAKING_ROOM);
   }
 
@@ -158,6 +158,7 @@ class MatchServer {
   private runMatchmaking(server, triggeringSocket) {
     console.log('Running matchmaking.');
     const clientsInMatchmaking = server.in(MatchServer.MATCHMAKING_ROOM).clients;
+    console.log('clients in matchmaking: ', clientsInMatchmaking);
     server.to(MatchServer.MATCHMAKING_ROOM).emit('matchmakingUpdate', { 'playersInQueue': clientsInMatchmaking.length });
 
     const joinableMatch = this._runningMatches.find(match => match.isJoinable);
