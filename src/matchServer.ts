@@ -100,7 +100,7 @@ class MatchServer {
 
   private addPlayerToMatchmaking(socket: SocketIO.Socket) {
     socket.join(MatchServer.MATCHMAKING_ROOM);
-    this.runMatchmaking(socket.server, socket);
+    this.runMatchmaking(socket);
   }
 
   private removePlayerFromMatchmaking(socket: SocketIO.Socket) {
@@ -155,21 +155,30 @@ class MatchServer {
     this.socketToPlayerMap.delete(player.socketId);
   }
 
-  private runMatchmaking(server, triggeringSocket) {
+
+  private getClientsInRoom(roomId: string): Promise<string[]> {
+    return new Promise<string[]>((resolve) => {
+      this._socketServer.in(MatchServer.MATCHMAKING_ROOM).clients((error, clients) => {
+        resolve(clients);
+      });
+    });
+  }
+
+  private async runMatchmaking(triggeringSocket: SocketIO.Socket) {
     console.log('Running matchmaking.');
-    const clientsInMatchmaking = server.in(MatchServer.MATCHMAKING_ROOM).clients;
+    const clientsInMatchmaking = await this.getClientsInRoom(MatchServer.MATCHMAKING_ROOM);
     console.log('clients in matchmaking: ', clientsInMatchmaking);
-    server.to(MatchServer.MATCHMAKING_ROOM).emit('matchmakingUpdate', { 'playersInQueue': clientsInMatchmaking.length });
+    this._socketServer.to(MatchServer.MATCHMAKING_ROOM).emit('matchmakingUpdate', { 'playersInQueue': clientsInMatchmaking.length });
 
     const joinableMatch = this._runningMatches.find(match => match.isJoinable);
     if (joinableMatch) {
       console.log('Joinable match found, notifying', triggeringSocket.id);
-      server.to(triggeringSocket.id).emit('matchReady', joinableMatch.serialize());
+      this._socketServer.to(triggeringSocket.id).emit('matchReady', joinableMatch.serialize());
     } else {
       if (clientsInMatchmaking.length > MatchServer.MIN_PLAYERS) {
         console.log('Creating a new match.');
         const match = this.createMatch();
-        server.to(MatchServer.MATCHMAKING_ROOM).emit('matchReady', match.serialize());
+        this._socketServer.to(MatchServer.MATCHMAKING_ROOM).emit('matchReady', match.serialize());
       } else {
         console.log('Not enough players to start a game. & No open game.');
       }
