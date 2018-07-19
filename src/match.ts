@@ -15,7 +15,7 @@ class Match {
   private startTime: Date;
   private joinUntil: Date;
   private nextElimination: Elimination;
-  private sendDataToPlayers: Function;
+  private _sendDataToPlayers: Function;
 
   public get id(): number {
     return this._id;
@@ -29,11 +29,11 @@ class Match {
     this._id = Match.nextMatchId++;
     this.players = [];
     this.maxPlayers = maxPlayers;
-    this.sendDataToPlayers = sendDataToPlayers;
+    this._sendDataToPlayers = sendDataToPlayers;
     this.startTime = Match.getFutureDate(Match.startTimeOffset); // start match in 1 minute
     this.joinUntil = Match.getFutureDate(Match.startTimeOffset * 0.75); // join within 45 seconds
     this.generateNextElimination(Match.startTimeOffset);
-    setInterval(sendDataToPlayers.bind(this, [this]), 2500);
+    setInterval(this.sendDataToPlayers.bind(this), 2500);
   }
 
   public get isActive(): boolean {
@@ -52,6 +52,10 @@ class Match {
     } else {
       return false;
     }
+  }
+
+  private sendDataToPlayers() {
+    this._sendDataToPlayers(this);
   }
 
   private calculatePlacements() {
@@ -99,7 +103,7 @@ class Match {
     //   this.sendDataToPlayers();
     // }
 
-    setTimeout(this.executeElimination, timeUntilEliminationWithOffset * 1000);
+    setTimeout(this.executeElimination.bind(this), timeUntilEliminationWithOffset * 1000);
   }
   
   private executeElimination() {
