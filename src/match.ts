@@ -33,7 +33,7 @@ class Match {
     this.startTime = Match.getFutureDate(Match.startTimeOffset); // start match in 1 minute
     this.joinUntil = Match.getFutureDate(Match.startTimeOffset * 0.75); // join within 45 seconds
     this.generateNextElimination(Match.startTimeOffset);
-    setInterval(this.sendDataToPlayers.bind(this), 2500);
+    //setInterval(this.sendDataToPlayers.bind(this), 2500);
   }
 
   public get isActive(): boolean {
@@ -76,6 +76,7 @@ class Match {
       player.field = playerUpdate.field;
     }
     this.calculatePlacements();
+    this.sendDataToPlayers();
   }
 
   public serialize(): SerializedMatch {
