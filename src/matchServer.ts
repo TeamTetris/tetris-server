@@ -55,9 +55,9 @@ class MatchServer {
           const result = await matchServer.addPlayerToMatch(socket, matchServer.getPlayerFromSocketId(socket.id), socketData.matchId);
           if (result["success"]) {
             matchServer.removePlayerFromMatchmaking(socket);
-            callback(true);
+            callback({ success: true });
           } else {
-            callback(false, result.message)
+            callback({ success: false, message: result.message });
           }
         });
 
@@ -175,7 +175,7 @@ class MatchServer {
       console.log('Joinable match found, notifying', triggeringSocket.id);
       this._socketServer.to(triggeringSocket.id).emit('matchReady', joinableMatch.serialize());
     } else {
-      if (clientsInMatchmaking.length > MatchServer.MIN_PLAYERS) {
+      if (clientsInMatchmaking.length >= MatchServer.MIN_PLAYERS) {
         console.log('Creating a new match.');
         const match = this.createMatch();
         this._socketServer.to(MatchServer.MATCHMAKING_ROOM).emit('matchReady', match.serialize());
