@@ -52,7 +52,7 @@ class MatchServer {
         });
 
         socket.on('joinMatch', async (socketData, callback) => {
-          const result = await matchServer.addPlayerToMatch(socket, this.getPlayerFromSocketId(socket.id), socketData.matchId);
+          const result = await matchServer.addPlayerToMatch(socket, matchServer.getPlayerFromSocketId(socket.id), socketData.matchId);
           if (result["success"]) {
             matchServer.removePlayerFromMatchmaking(socket);
             callback(true);
@@ -186,7 +186,7 @@ class MatchServer {
   }
 
   private createMatch(): Match {
-    const newMatch = new Match(MatchServer.MAX_PLAYERS, this.sendMatchUpdate);
+    const newMatch = new Match(MatchServer.MAX_PLAYERS, this.sendMatchUpdate.bind(this));
     this._runningMatches.push(newMatch);
     return newMatch;
   }
