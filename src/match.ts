@@ -8,7 +8,7 @@ import PlayerUpdate from './player/playerUpdate';
 
 class Match {
   private static nextMatchId: number = 1000;
-  private static startTimeOffset: number = 60;
+  private static startTimeOffset: number = 20;
   private _id: number;
   private players: MatchPlayer[];
   private maxPlayers: number;
@@ -22,7 +22,7 @@ class Match {
   }
 
   private static getFutureDate(secondOffset: number) {
-    return new Date(Date.now() + 1000 * secondOffset)
+    return new Date(Date.now() + 1000 * secondOffset);
   }
 
   constructor(maxPlayers: number, sendDataToPlayers: Function) {
@@ -71,6 +71,9 @@ class Match {
 
   public receivePlayerUpdate(playerUpdate: PlayerUpdate) {
     const player = this.players.find(p => p.socketId == playerUpdate.socketId);
+    if (!player) {
+      console.error('could not find player for received playerupdate. socektid:', playerUpdate.socketId);
+    }
     player.points = playerUpdate.points;
     if (playerUpdate.field) {
       player.field = playerUpdate.field;

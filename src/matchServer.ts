@@ -17,7 +17,7 @@ class MatchServer {
 
   private static MATCH_ROOM_PREFIX: string = "match-";
   private static MATCHMAKING_ROOM: string = "matchmaking";
-  private static MIN_PLAYERS: number = 2;
+  private static MIN_PLAYERS: number = 1;
   private static MAX_PLAYERS: number = 5;
 
   private socketToPlayerMap: Map<string, MatchPlayer> = new Map<string, MatchPlayer>();
@@ -51,7 +51,7 @@ class MatchServer {
           const result = await matchServer.addPlayerToMatch(socket, matchServer.getPlayerFromSocketId(socket.id), socketData.matchId);
           if (result["success"]) {
             matchServer.removePlayerFromMatchmaking(socket);
-            callback({ success: true });
+            callback({ success: true, match: matchServer.getMatchFromId(socketData.matchId).serialize() });
           } else {
             callback({ success: false, message: result.message });
           }
@@ -85,7 +85,7 @@ class MatchServer {
     const matches = this.getJoinedMatchesOfPlayer(socket);
     console.log('player is in matches ', matches);
     if (matches.length > 1) {
-      console.error("Player is in more than one match:", socket.id, socket.rooms);
+      console.error("Player is in more than one match:", socket.id, Object.keys(socket.rooms));
     }
     if (matches.length == 0) {
       return false;
