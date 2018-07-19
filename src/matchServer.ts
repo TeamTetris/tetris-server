@@ -34,12 +34,8 @@ class MatchServer {
       console.log('Listening on ' + httpServer.address().port);
       socketServer.on('connection', function (socket) {
         socket.on('disconnect', function () {
-          if (matchServer.isPlayerInMatchmakingQueue(socket)) {
-            matchServer.removePlayerFromMatchmaking(socket); // TODO: REDUNDANT, socket.io already has sockets leave all rooms on disconnect
-          }
-          if (matchServer.isPlayerInMatch(socket)) {
-            matchServer.removePlayerFromMatch(socket); 
-          }
+          matchServer.removePlayerFromMatchmaking(socket); // TODO: REDUNDANT, socket.io already has sockets leave all rooms on disconnect
+          matchServer.flagPlayerAsDisconnected(socket); 
         });
 
         socket.on('joinMatchmaking', () => {
@@ -62,7 +58,7 @@ class MatchServer {
         });
 
         socket.on('leaveMatch', function () {
-          matchServer.removePlayerFromMatch(socket);
+          matchServer.flagPlayerAsDisconnected(socket);
         });
 
         socket.on('matchUpdate', (socketData) => {
@@ -74,16 +70,20 @@ class MatchServer {
     });
   }
 
-  private isPlayerInMatchmakingQueue(socket: SocketIO.Socket) {
+  private isPlayerInMatchmakingQueue(socket: SocketIO.Socket): boolean {
     return socket.rooms && Object.keys(socket.rooms).indexOf(MatchServer.MATCHMAKING_ROOM) > -1;
   }
 
-  private getJoinedMatchesOfPlayer(socket: SocketIO.Socket) {
-    return Object.keys(socket.rooms).filter(b => b.indexOf(MatchServer.MATCH_ROOM_PREFIX) > -1);
+  private getJoinedMatchesOfPlayer(socket: SocketIO.Socket): Match[] {
+    console.log('rooms: ',Object.keys(socket.rooms));
+    return Object.keys(socket.rooms)
+      .filter(b => b.indexOf(MatchServer.MATCH_ROOM_PREFIX) > -1)
+      .map(matchId => this.getMatchFromId(Number.parseInt(matchId.substr(MatchServer.MATCH_ROOM_PREFIX.length))));
   }
 
   private isPlayerInMatch(socket): boolean {
     const matches = this.getJoinedMatchesOfPlayer(socket);
+    console.log('player is in matches ', matches);
     if (matches.length > 1) {
       console.error("Player is in more than one match:", socket.id, socket.rooms);
     }
@@ -129,13 +129,11 @@ class MatchServer {
     })
   }
 
-  private removePlayerFromMatch(socket) {
-    for (let match of this.getJoinedMatchesOfPlayer(socket)) {
-      const player = this.getPlayerFromSocketId(socket.id);
-      player.connectionStatus = ConnectionStatus.Disconnected;
-      socket.leave(this.getMatchRoomName(match)); // TODO: move this & line above into something like player.leaveMatch();
-      this.destroyPlayer(player);
-    }
+  private flagPlayerAsDisconnected(socket) {
+    console.log('removing player from all matches');
+    const player = this.getPlayerFromSocketId(socket.id);
+    player.connectionStatus = ConnectionStatus.Disconnected; // TODO: move this into something like player.leaveMatch();
+    this.destroyPlayer(player);
   }
   
   private getMatchFromId(matchId: number): Match {
