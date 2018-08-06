@@ -33,6 +33,8 @@ class MatchServer {
     httpServer.listen(process.env.PORT || 8081, function () {
       console.log('Listening on ' + httpServer.address().port);
       socketServer.on('connection', function (socket) {
+        socketServer.to(socket.id).emit('yourSocketId', { yourSocketId: socket.id });
+
         socket.on('disconnect', function () {
           matchServer.removePlayerFromMatchmaking(socket); // TODO: REDUNDANT, socket.io already has sockets leave all rooms on disconnect
           matchServer.flagPlayerAsDisconnected(socket); 

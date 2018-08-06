@@ -6,6 +6,15 @@ import PlayStatus from './player/playStatus';
 import ScoreboardStatus from './player/scoreboardStatus';
 import PlayerUpdate from './player/playerUpdate';
 
+
+const partialPlayerArraySort = (array: Array<MatchPlayer>, start: number, end: number, compareFunction: (a: MatchPlayer, b: MatchPlayer) => number) => {
+  const preSorted = array.slice(0, start), postSorted = array.slice(end);
+  const sorted = array.slice(start, end).sort(compareFunction);
+  array.length = 0;
+  array.push.apply(array, preSorted.concat(sorted).concat(postSorted));
+  return array;
+}
+
 class Match {
   private static nextMatchId: number = 1000;
   private static startTimeOffset: number = 20;
@@ -57,15 +66,18 @@ class Match {
   private sendDataToPlayers() {
     this._sendDataToPlayers(this);
   }
-
+  
   private calculatePlacements() {
-    // TODO: mark Spotlighted & Endangered
-    this.players.sort((a, b) => {
-      return b.points - a.points; // descending sort
-    });
-    let index = 1;
+    const lowestPlayingPlayerIndex = this.players.findIndex(p => p.playStatus == PlayStatus.Finished);
+    partialPlayerArraySort(this.players, 0, lowestPlayingPlayerIndex, (a, b) => b.points - a.points);
+    let placement = 1;
     for (let player of this.players) {
-      player.placement = index++;
+      if (placement <= lowestPlayingPlayerIndex - this.nextElimination.playerAmount || placement > lowestPlayingPlayerIndex) {
+        player.scoreboardStatus = ScoreboardStatus.Regular;
+      } else if (placement <= lowestPlayingPlayerIndex) {
+        player.scoreboardStatus = ScoreboardStatus.Endangered;
+      } 
+      player.placement = placement++;
     }
   }
 

@@ -1,8 +1,7 @@
 
 enum ScoreboardStatus {
   Regular,
-  Endangered,
-  Spotlighted
+  Endangered
 }
 
 export default ScoreboardStatus;
