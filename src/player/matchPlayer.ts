@@ -1,6 +1,7 @@
 import ConnectionStatus from './connectionStatus'
 import ScoreboardStatus from './scoreboardStatus'
 import PlayStatus from './playStatus'
+import Match from '../match/match';
 
 class MatchPlayer {
   public displayName: string;
@@ -11,6 +12,7 @@ class MatchPlayer {
   public scoreboardStatus: ScoreboardStatus;
   public playStatus: PlayStatus;
   public field: Object;
+  public currentMatch: Match;
 
 
   public get socketId(): string {
@@ -25,6 +27,17 @@ class MatchPlayer {
     this.connectionStatus = ConnectionStatus.Connected; // TODO: implement connecting state?
     this.scoreboardStatus = ScoreboardStatus.Regular;
     this.playStatus = PlayStatus.Playing;
+  }
+
+  public flagAsDisconnected() {
+    this.playStatus = PlayStatus.Finished; 
+    this.connectionStatus = ConnectionStatus.Disconnected;
+    this.currentMatch.determinePlacement(this);
+  }
+
+  public flagAsSelfEliminated() {
+    this.playStatus = PlayStatus.Finished; 
+    this.currentMatch.determinePlacement(this);
   }
 }
 

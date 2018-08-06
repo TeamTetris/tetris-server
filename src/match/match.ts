@@ -1,10 +1,11 @@
-import MatchPlayer from './player/matchPlayer'
+import MatchPlayer from '../player/matchPlayer'
 import Elimination from './elimination';
 import SerializedMatch from './serializedMatch'
-import ConnectionStatus from './player/connectionStatus';
-import PlayStatus from './player/playStatus';
-import ScoreboardStatus from './player/scoreboardStatus';
-import PlayerUpdate from './player/playerUpdate';
+import SerializedMatchPlayer from '../player/serializedMatchPlayer'
+import ConnectionStatus from '../player/connectionStatus';
+import PlayStatus from '../player/playStatus';
+import ScoreboardStatus from '../player/scoreboardStatus';
+import PlayerUpdate from '../player/playerUpdate';
 
 
 const partialPlayerArraySort = (array: Array<MatchPlayer>, start: number, end: number, compareFunction: (a: MatchPlayer, b: MatchPlayer) => number) => {
@@ -14,6 +15,23 @@ const partialPlayerArraySort = (array: Array<MatchPlayer>, start: number, end: n
   array.push.apply(array, preSorted.concat(sorted).concat(postSorted));
   return array;
 }
+
+const movePlayerWithinArray = (array: Array<MatchPlayer>, oldIndex: number, newIndex: number) => {
+  while (oldIndex < 0) {
+      oldIndex += array.length;
+  }
+  while (newIndex < 0) {
+      newIndex += array.length;
+  }
+  if (newIndex >= array.length) {
+      var k = newIndex - array.length + 1;
+      while (k--) {
+          array.push(undefined);
+      }
+  }
+  array.splice(newIndex, 0, array.splice(oldIndex, 1)[0]);
+  return array;
+};
 
 class Match {
   private static nextMatchId: number = 1000;
@@ -93,15 +111,34 @@ class Match {
     this.calculatePlacements();
     this.sendDataToPlayers();
   }
-
+  
   public serialize(): SerializedMatch {
+    const serializedMatchPlayers = this.players.map((p: MatchPlayer) => {
+      return { 
+        displayName: p.displayName,
+        socketId: p.socketId,
+        points: p.points,
+        placement: p.placement,
+        connectionStatus: p.connectionStatus,
+        scoreboardStatus: p.scoreboardStatus,
+        playStatus: p.playStatus,
+        field: p.field 
+      };
+    });
+
     return {
       id: this.id,
-      players: this.players,
+      players: serializedMatchPlayers,
       startTime: this.startTime,
       joinUntil: this.joinUntil,
       nextElimination: this.nextElimination.time,
     }
+  }
+
+  public determinePlacement(player: MatchPlayer) {
+    const lowestPlayingPlayerIndex = this.players.findIndex(p => p.playStatus == PlayStatus.Finished);
+    movePlayerWithinArray(this.players, this.players.findIndex(p => p === player), lowestPlayingPlayerIndex - 1);
+    this.calculatePlacements();
   }
 
   private generateNextElimination(eliminationOffset: number = 0) {

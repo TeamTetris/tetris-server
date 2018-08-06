@@ -1,9 +1,10 @@
 import * as socketIo from 'socket.io';
 import * as http from 'http';
 
-import Match from './match';
+import Match from './match/match';
 import MatchPlayer from './player/matchPlayer';
 import ConnectionStatus from './player/connectionStatus';
+import PlayStatus from './player/playStatus';
 
 interface Result {
   success: boolean,
@@ -34,6 +35,10 @@ class MatchServer {
       console.log('Listening on ' + httpServer.address().port);
       socketServer.on('connection', function (socket) {
         socketServer.to(socket.id).emit('yourSocketId', { yourSocketId: socket.id });
+
+        socket.on('selfEliminated', () => {
+          matchServer.flagPlayerAsSelfEliminated(socket);
+        });
 
         socket.on('disconnect', function () {
           matchServer.removePlayerFromMatchmaking(socket); // TODO: REDUNDANT, socket.io already has sockets leave all rooms on disconnect
@@ -131,10 +136,14 @@ class MatchServer {
     })
   }
 
-  private flagPlayerAsDisconnected(socket) {
-    console.log('removing player from all matches');
+  private flagPlayerAsSelfEliminated(socket) {
     const player = this.getPlayerFromSocketId(socket.id);
-    player.connectionStatus = ConnectionStatus.Disconnected; // TODO: move this into something like player.leaveMatch();
+    player.flagAsSelfEliminated();
+  }
+
+  private flagPlayerAsDisconnected(socket) {
+    const player = this.getPlayerFromSocketId(socket.id);
+    player.flagAsDisconnected();
     this.destroyPlayer(player);
   }
   

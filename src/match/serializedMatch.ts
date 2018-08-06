@@ -1,8 +1,8 @@
-import MatchPlayer from './player/matchPlayer'
+import SerializedMatchPlayer from '../player/serializedMatchPlayer'
 
 interface SerializedMatch {
   id: number;
-  players: MatchPlayer[];
+  players: SerializedMatchPlayer[];
   startTime: Date;
   joinUntil: Date;
   nextElimination: Date; 
