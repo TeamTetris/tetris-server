@@ -55,7 +55,9 @@ class MatchServer {
         });
 
         socket.on('joinMatch', async (socketData, callback) => {
-          const result = await matchServer.addPlayerToMatch(socket, matchServer.getPlayerFromSocketId(socket.id), socketData.matchId);
+          const player = matchServer.getPlayerFromSocketId(socket.id);
+          player.displayName = socketData.displayName || "default player";
+          const result = await matchServer.addPlayerToMatch(socket, player, socketData.matchId);
           if (result["success"]) {
             matchServer.removePlayerFromMatchmaking(socket);
             callback({ success: true, match: matchServer.getMatchFromId(socketData.matchId).serialize() });
