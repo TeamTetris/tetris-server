@@ -30,13 +30,13 @@ class MatchPlayer {
   }
 
   public flagAsDisconnected() {
-    this.playStatus = PlayStatus.Finished; 
+    this.playStatus = PlayStatus.Eliminated; 
     this.connectionStatus = ConnectionStatus.Disconnected;
     this.currentMatch.determinePlacement(this);
   }
 
   public flagAsSelfEliminated() {
-    this.playStatus = PlayStatus.Finished; 
+    this.playStatus = PlayStatus.Eliminated; 
     this.currentMatch.determinePlacement(this);
   }
 }
