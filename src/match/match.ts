@@ -43,6 +43,8 @@ class Match {
   private joinUntil: Date;
   private nextElimination: Elimination;
   private _sendDataToPlayers: Function;
+  private sendDataQueued: Boolean;
+  private nextEliminationTimeout: number;
 
   public get id(): number {
     return this._id;
@@ -56,11 +58,12 @@ class Match {
     this._id = Match.nextMatchId++;
     this.players = [];
     this.maxPlayers = maxPlayers;
+    this.sendDataQueued = false;
     this._sendDataToPlayers = sendDataToPlayers;
     this.startTime = Match.getFutureDate(Match.startTimeOffset); // start match in 1 minute
     this.joinUntil = Match.getFutureDate(Match.startTimeOffset * 0.75); // join within 45 seconds
     this.generateNextElimination(Match.startTimeOffset);
-    //setInterval(this.sendDataToPlayers.bind(this), 2500);
+    setInterval(this.sendDataToPlayersIfQueued.bind(this), 200);
   }
 
   public get isActive(): boolean {
@@ -74,23 +77,30 @@ class Match {
   public addPlayer(player: MatchPlayer): boolean {
     if (this.isJoinable) {
       this.players.push(player);
-      this.sendDataToPlayers();
+      this.queueSendDataToPlayers();
       return true;
     } else {
       return false;
     }
   }
 
-  private sendDataToPlayers() {
-    this._sendDataToPlayers(this);
+  private sendDataToPlayersIfQueued() {
+    if (this.sendDataQueued) {
+      this.sendDataQueued = false;
+      this._sendDataToPlayers(this);
+    }
+  }
+
+  private queueSendDataToPlayers() {
+    this.sendDataQueued = true;
   }
   
   private calculatePlacements() {
-    const lowestPlayingPlayerIndex = this.players.findIndex(p => p.playStatus == PlayStatus.Finished);
+    const lowestPlayingPlayerIndex = this.players.findIndex(p => p.playStatus == PlayStatus.Eliminated);
     partialPlayerArraySort(this.players, 0, lowestPlayingPlayerIndex, (a, b) => b.points - a.points);
     let placement = 1;
     for (let player of this.players) {
-      if (placement <= lowestPlayingPlayerIndex - this.nextElimination.playerAmount || placement > lowestPlayingPlayerIndex) {
+      if (placement <= Math.max(lowestPlayingPlayerIndex - this.nextElimination.playerAmount, 1) || placement > lowestPlayingPlayerIndex) {
         player.scoreboardStatus = ScoreboardStatus.Regular;
       } else if (placement <= lowestPlayingPlayerIndex) {
         player.scoreboardStatus = ScoreboardStatus.Endangered;
@@ -109,7 +119,7 @@ class Match {
       player.field = playerUpdate.field;
     }
     this.calculatePlacements();
-    this.sendDataToPlayers();
+    this.queueSendDataToPlayers();
   }
   
   public serialize(): SerializedMatch {
@@ -136,32 +146,40 @@ class Match {
   }
 
   public determinePlacement(player: MatchPlayer) {
-    const lowestPlayingPlayerIndex = this.players.findIndex(p => p.playStatus == PlayStatus.Finished);
+    const lowestPlayingPlayerIndex = this.players.findIndex(p => p.playStatus == PlayStatus.Eliminated);
     movePlayerWithinArray(this.players, this.players.findIndex(p => p === player), lowestPlayingPlayerIndex - 1);
     this.calculatePlacements();
+    this.checkForWinner();
   }
 
   private generateNextElimination(eliminationOffset: number = 0) {
-    const firstTime = 60;
-    const lastTime = 10;
+    const firstTimer = 60;
+    const lastTimer = 10;
     const remainingPlayers = this.players.filter(p => p.playStatus == PlayStatus.Playing);
     const t = 1 - remainingPlayers.length / this.maxPlayers;
-    const timeUntilElimination = firstTime * (1 - t) + lastTime * t;
+    const timeUntilElimination = firstTimer * (1 - t) + lastTimer * t;
     const playerAmount = Math.max(1, remainingPlayers.length * 0.1);
 
     const timeUntilEliminationWithOffset = timeUntilElimination + eliminationOffset;
     this.nextElimination = { playerAmount, time: Match.getFutureDate(timeUntilEliminationWithOffset) };
+    this.nextEliminationTimeout = setTimeout(this.executeElimination.bind(this), timeUntilEliminationWithOffset * 1000);
 
-    // if (!doNotUpdatePlayers) {
-    //   this.sendDataToPlayers();
-    // }
-
-    setTimeout(this.executeElimination.bind(this), timeUntilEliminationWithOffset * 1000);
+    this.queueSendDataToPlayers();
   }
   
+  private checkForWinner() {
+    const remainingPlayers = this.players.filter(p => p.playStatus == PlayStatus.Playing);
+
+    if (remainingPlayers.length == 1) {
+      remainingPlayers[0].playStatus = PlayStatus.Won;
+      clearTimeout(this.nextEliminationTimeout);
+    }
+    this.queueSendDataToPlayers();
+  }
+
   private executeElimination() {
     const remainingPlayers = this.players.filter(p => p.playStatus == PlayStatus.Playing);
-    const placementCutoff = remainingPlayers.length - this.nextElimination.playerAmount;
+    const placementCutoff = Math.max(remainingPlayers.length - this.nextElimination.playerAmount, 1);
 
     let lastElimination = false;
     if (placementCutoff == 1) {
@@ -170,18 +188,18 @@ class Match {
 
     for (let player of this.players) {
       if (player.placement < placementCutoff) {
-        player.playStatus = PlayStatus.Finished;
+        player.playStatus = PlayStatus.Eliminated;
         player.scoreboardStatus = ScoreboardStatus.Regular;
       }
       if (lastElimination && player.placement == 1) {
-        player.playStatus = PlayStatus.Finished;
+        player.playStatus = PlayStatus.Won;
       }
     }
 
     if (!lastElimination) {
       this.generateNextElimination();
     } else {
-      // this.sendDataToPlayers();
+      this.queueSendDataToPlayers();
     }
   }
 }

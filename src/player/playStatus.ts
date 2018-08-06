@@ -1,7 +1,8 @@
 
 enum PlayStatus {
   Playing,
-  Finished
+  Eliminated,
+  Won
 }
 
 export default PlayStatus;
