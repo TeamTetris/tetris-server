@@ -77,6 +77,7 @@ class Match {
   public addPlayer(player: MatchPlayer): boolean {
     if (this.isJoinable) {
       this.players.push(player);
+      player.currentMatch = this;
       this.queueSendDataToPlayers();
       return true;
     } else {
