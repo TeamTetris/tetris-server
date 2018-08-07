@@ -97,7 +97,10 @@ class Match {
   }
   
   private calculatePlacements() {
-    const lowestPlayingPlayerIndex = this.players.findIndex(p => p.playStatus == PlayStatus.Eliminated);
+    let lowestPlayingPlayerIndex = this.players.findIndex(p => p.playStatus == PlayStatus.Eliminated);
+    if (lowestPlayingPlayerIndex < 0) {
+      lowestPlayingPlayerIndex = this.players.length;
+    }
     partialPlayerArraySort(this.players, 0, lowestPlayingPlayerIndex, (a, b) => b.points - a.points);
     let placement = 1;
     for (let player of this.players) {
