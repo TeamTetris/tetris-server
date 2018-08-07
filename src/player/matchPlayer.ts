@@ -32,12 +32,16 @@ class MatchPlayer {
   public flagAsDisconnected() {
     this.playStatus = PlayStatus.Eliminated; 
     this.connectionStatus = ConnectionStatus.Disconnected;
-    this.currentMatch.determinePlacement(this);
+    if (this.currentMatch) {
+      this.currentMatch.determinePlacement(this);
+    }
   }
 
   public flagAsSelfEliminated() {
-    this.playStatus = PlayStatus.Eliminated; 
-    this.currentMatch.determinePlacement(this);
+    this.playStatus = PlayStatus.Eliminated;
+    if (this.currentMatch) {
+      this.currentMatch.determinePlacement(this);
+    }
   }
 }
 

@@ -35,7 +35,7 @@ const movePlayerWithinArray = (array: Array<MatchPlayer>, oldIndex: number, newI
 
 class Match {
   private static nextMatchId: number = 1000;
-  private static startTimeOffset: number = 20;
+  private static startTimeOffset: number = 30;
   private _id: number;
   private players: MatchPlayer[];
   private maxPlayers: number;
@@ -60,8 +60,8 @@ class Match {
     this.maxPlayers = maxPlayers;
     this.sendDataQueued = false;
     this._sendDataToPlayers = sendDataToPlayers;
-    this.startTime = Match.getFutureDate(Match.startTimeOffset); // start match in 1 minute
-    this.joinUntil = Match.getFutureDate(Match.startTimeOffset * 0.75); // join within 45 seconds
+    this.startTime = Match.getFutureDate(Match.startTimeOffset); 
+    this.joinUntil = Match.getFutureDate(Match.startTimeOffset * 0.75);
     this.generateNextElimination(Match.startTimeOffset);
     setInterval(this.sendDataToPlayersIfQueued.bind(this), 200);
   }
