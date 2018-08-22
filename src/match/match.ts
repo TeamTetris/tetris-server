@@ -35,7 +35,7 @@ const movePlayerWithinArray = (array: Array<MatchPlayer>, oldIndex: number, newI
 
 class Match {
   private static nextMatchId: number = 1000;
-  private static startTimeOffset: number = 30;
+  private static startTimeOffset: number = 10;
   private _id: number;
   private players: MatchPlayer[];
   private maxPlayers: number;
@@ -62,7 +62,7 @@ class Match {
     this._sendDataToPlayers = sendDataToPlayers;
     this.startTime = Match.getFutureDate(Match.startTimeOffset); 
     this.joinUntil = Match.getFutureDate(Match.startTimeOffset * 0.75);
-    this.generateNextElimination(Match.startTimeOffset);
+    setTimeout(this.generateNextElimination.bind(this), Match.startTimeOffset * 1000);
     setInterval(this.sendDataToPlayersIfQueued.bind(this), 200);
   }
 
@@ -104,7 +104,7 @@ class Match {
     partialPlayerArraySort(this.players, 0, lowestPlayingPlayerIndex, (a, b) => b.points - a.points);
     let placement = 1;
     for (let player of this.players) {
-      if (placement <= Math.max(lowestPlayingPlayerIndex - this.nextElimination.playerAmount, 1) || placement > lowestPlayingPlayerIndex) {
+      if (this.nextElimination && (placement <= Math.max(lowestPlayingPlayerIndex - this.nextElimination.playerAmount, 1) || placement > lowestPlayingPlayerIndex)) {
         player.scoreboardStatus = ScoreboardStatus.Regular;
       } else if (placement <= lowestPlayingPlayerIndex) {
         player.scoreboardStatus = ScoreboardStatus.Endangered;
@@ -145,7 +145,7 @@ class Match {
       players: serializedMatchPlayers,
       startTime: this.startTime,
       joinUntil: this.joinUntil,
-      nextElimination: this.nextElimination.time,
+      nextElimination: this.nextElimination ? this.nextElimination.time : null,
     }
   }
 
