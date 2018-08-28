@@ -40,6 +40,7 @@ class Match {
     this.startTime = Match.getFutureDate(Match.startTimeOffset); 
     this.joinUntil = Match.getFutureDate(Match.startTimeOffset * 0.75);
     setTimeout(this.generateNextElimination.bind(this), Match.startTimeOffset * 1000);
+    setTimeout(this.calculatePlacements.bind(this), Match.startTimeOffset * 1000 + 100);
     setInterval(this.sendDataToPlayersIfQueued.bind(this), 200);
   }
 
@@ -133,8 +134,11 @@ class Match {
   }
 
   public determinePlacement(player: MatchPlayer) {
+    if (player.playStatus !== PlayStatus.Playing) {
+      return;
+    }
     if (!this.nextPlacement) {
-      this.nextPlacement = this.allPlayers.length;
+      this.nextPlacement = this.playingPlayers.length;
     }
     console.log('PLACEMENT DETERMINED', this.nextPlacement, player.displayName);
     player.placement = this.nextPlacement--;
