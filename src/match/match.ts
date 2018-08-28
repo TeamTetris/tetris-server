@@ -7,37 +7,12 @@ import PlayStatus from '../player/playStatus';
 import ScoreboardStatus from '../player/scoreboardStatus';
 import PlayerUpdate from '../player/playerUpdate';
 
-
-const partialPlayerArraySort = (array: Array<MatchPlayer>, start: number, end: number, compareFunction: (a: MatchPlayer, b: MatchPlayer) => number) => {
-  const preSorted = array.slice(0, start), postSorted = array.slice(end);
-  const sorted = array.slice(start, end).sort(compareFunction);
-  array.length = 0;
-  array.push.apply(array, preSorted.concat(sorted).concat(postSorted));
-  return array;
-}
-
-const movePlayerWithinArray = (array: Array<MatchPlayer>, oldIndex: number, newIndex: number) => {
-  while (oldIndex < 0) {
-      oldIndex += array.length;
-  }
-  while (newIndex < 0) {
-      newIndex += array.length;
-  }
-  if (newIndex >= array.length) {
-      var k = newIndex - array.length + 1;
-      while (k--) {
-          array.push(undefined);
-      }
-  }
-  array.splice(newIndex, 0, array.splice(oldIndex, 1)[0]);
-  return array;
-};
-
 class Match {
   private static nextMatchId: number = 1000;
   private static startTimeOffset: number = 10;
   private _id: number;
-  private players: MatchPlayer[];
+  private allPlayers: MatchPlayer[];
+  private playingPlayers: MatchPlayer[];
   private maxPlayers: number;
   private startTime: Date;
   private joinUntil: Date;
@@ -45,6 +20,7 @@ class Match {
   private _sendDataToPlayers: Function;
   private sendDataQueued: Boolean;
   private nextEliminationTimeout: number;
+  private nextPlacement: number;
 
   public get id(): number {
     return this._id;
@@ -56,7 +32,8 @@ class Match {
 
   constructor(maxPlayers: number, sendDataToPlayers: Function) {
     this._id = Match.nextMatchId++;
-    this.players = [];
+    this.allPlayers = [];
+    this.playingPlayers = [];
     this.maxPlayers = maxPlayers;
     this.sendDataQueued = false;
     this._sendDataToPlayers = sendDataToPlayers;
@@ -67,16 +44,21 @@ class Match {
   }
 
   public get isActive(): boolean {
-    return this.players.every(player => player.connectionStatus !== ConnectionStatus.Connected);
+    return this.allPlayers.every(player => player.connectionStatus !== ConnectionStatus.Connected);
   }
   
   public get isJoinable() {
-    return this.joinUntil > new Date() && this.players.length < this.maxPlayers;
+    return this.joinUntil > new Date() && this.allPlayers.length < this.maxPlayers;
   }
 
   public addPlayer(player: MatchPlayer): boolean {
     if (this.isJoinable) {
-      this.players.push(player);
+      if (this.allPlayers.findIndex(p => p == player) > -1) {
+        return false;
+      }
+      this.allPlayers.push(player);
+      this.playingPlayers.push(player);
+      this.calculatePlacements();
       player.currentMatch = this;
       this.queueSendDataToPlayers();
       return true;
@@ -97,37 +79,38 @@ class Match {
   }
   
   private calculatePlacements() {
-    let lowestPlayingPlayerIndex = this.players.findIndex(p => p.playStatus == PlayStatus.Eliminated);
-    if (lowestPlayingPlayerIndex < 0) {
-      lowestPlayingPlayerIndex = this.players.length;
+    console.log('calculcate placement START', this.playingPlayers.map(p => { return { name: p.displayName, points: p.points, placement: p.placement }}));
+    this.playingPlayers.sort((a, b) => (b.points - a.points) + 0.0001 * a.displayName.localeCompare(b.displayName));
+    for (let i = 0; i < this.playingPlayers.length; i++) {
+      this.playingPlayers[i].placement = i + 1;
+      if (this.nextElimination && this.nextElimination.time > new Date() && this.playingPlayers[i].placement > this.playingPlayers.length - this.nextElimination.playerAmount) {
+        this.playingPlayers[i].scoreboardStatus = ScoreboardStatus.Endangered;
+      } else {
+        this.playingPlayers[i].scoreboardStatus = ScoreboardStatus.Regular;
+      }
     }
-    partialPlayerArraySort(this.players, 0, lowestPlayingPlayerIndex, (a, b) => b.points - a.points);
-    let placement = 1;
-    for (let player of this.players) {
-      if (this.nextElimination && (placement <= Math.max(lowestPlayingPlayerIndex - this.nextElimination.playerAmount, 1) || placement > lowestPlayingPlayerIndex)) {
-        player.scoreboardStatus = ScoreboardStatus.Regular;
-      } else if (placement <= lowestPlayingPlayerIndex) {
-        player.scoreboardStatus = ScoreboardStatus.Endangered;
-      } 
-      player.placement = placement++;
-    }
+    this.allPlayers.sort((a, b) => a.placement - b.placement);
+    console.log('calculcate placement FINISHED', this.playingPlayers.map(p => { return { name: p.displayName, points: p.points, placement: p.placement }}));
   }
 
   public receivePlayerUpdate(playerUpdate: PlayerUpdate) {
-    const player = this.players.find(p => p.socketId == playerUpdate.socketId);
+    const player = this.allPlayers.find(p => p.socketId == playerUpdate.socketId);
     if (!player) {
-      console.error('could not find player for received playerupdate. socektid:', playerUpdate.socketId);
+      console.error('could not find player for received playerupdate. socketId:', playerUpdate.socketId);
     }
+    const pointsChanged = player.points !== playerUpdate.points;
     player.points = playerUpdate.points;
     if (playerUpdate.field) {
       player.field = playerUpdate.field;
     }
-    this.calculatePlacements();
+    if (pointsChanged) {
+      this.calculatePlacements();
+    }
     this.queueSendDataToPlayers();
   }
   
   public serialize(): SerializedMatch {
-    const serializedMatchPlayers = this.players.map((p: MatchPlayer) => {
+    const serializedMatchPlayers = this.allPlayers.map((p: MatchPlayer) => {
       return { 
         displayName: p.displayName,
         socketId: p.socketId,
@@ -150,8 +133,12 @@ class Match {
   }
 
   public determinePlacement(player: MatchPlayer) {
-    const lowestPlayingPlayerIndex = this.players.findIndex(p => p.playStatus == PlayStatus.Eliminated);
-    movePlayerWithinArray(this.players, this.players.findIndex(p => p === player), lowestPlayingPlayerIndex - 1);
+    if (!this.nextPlacement) {
+      this.nextPlacement = this.allPlayers.length;
+    }
+    console.log('PLACEMENT DETERMINED', this.nextPlacement, player.displayName);
+    player.placement = this.nextPlacement--;
+    this.playingPlayers.splice(this.playingPlayers.findIndex(p => p == player));
     this.calculatePlacements();
     this.checkForWinner();
   }
@@ -159,7 +146,7 @@ class Match {
   private generateNextElimination(eliminationOffset: number = 0) {
     const firstTimer = 60;
     const lastTimer = 10;
-    const remainingPlayers = this.players.filter(p => p.playStatus == PlayStatus.Playing);
+    const remainingPlayers = this.allPlayers.filter(p => p.playStatus == PlayStatus.Playing);
     const t = 1 - remainingPlayers.length / this.maxPlayers;
     const timeUntilElimination = firstTimer * (1 - t) + lastTimer * t;
     const playerAmount = Math.max(1, remainingPlayers.length * 0.1);
@@ -172,17 +159,18 @@ class Match {
   }
   
   private checkForWinner() {
-    const remainingPlayers = this.players.filter(p => p.playStatus == PlayStatus.Playing);
-
-    if (remainingPlayers.length == 1) {
-      remainingPlayers[0].playStatus = PlayStatus.Won;
+    console.log('check for winner');
+    if (this.playingPlayers.length == 1) {
+      this.playingPlayers[0].playStatus = PlayStatus.Won;
+      this.playingPlayers[0].scoreboardStatus = ScoreboardStatus.Regular;
       clearTimeout(this.nextEliminationTimeout);
+      this.queueSendDataToPlayers();
+      console.log('winner found', this.playingPlayers[0].displayName);
     }
-    this.queueSendDataToPlayers();
   }
 
   private executeElimination() {
-    const remainingPlayers = this.players.filter(p => p.playStatus == PlayStatus.Playing);
+    const remainingPlayers = this.allPlayers.filter(p => p.playStatus == PlayStatus.Playing);
     const placementCutoff = Math.max(remainingPlayers.length - this.nextElimination.playerAmount, 1);
 
     let lastElimination = false;
@@ -190,10 +178,11 @@ class Match {
       lastElimination = true;
     }
 
-    for (let player of this.players) {
-      if (player.placement < placementCutoff) {
+    for (let player of this.allPlayers) {
+      if (player.placement > placementCutoff) {
         player.playStatus = PlayStatus.Eliminated;
         player.scoreboardStatus = ScoreboardStatus.Regular;
+        this.determinePlacement(player);
       }
       if (lastElimination && player.placement == 1) {
         player.playStatus = PlayStatus.Won;

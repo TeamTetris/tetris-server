@@ -34,8 +34,6 @@ class MatchServer {
     httpServer.listen(process.env.PORT || 8081, function () {
       console.log('Listening on ' + httpServer.address().port);
       socketServer.on('connection', function (socket) {
-        socketServer.to(socket.id).emit('yourSocketId', { yourSocketId: socket.id });
-
         socket.on('selfEliminated', () => {
           matchServer.flagPlayerAsSelfEliminated(socket);
         });
@@ -203,7 +201,7 @@ class MatchServer {
   }
 
   private sendMatchUpdate(match: Match) {
-    console.log('sendMatchUpdate. match: ' + match + ' serialized: ' + JSON.stringify(match.serialize()));
+    //console.log('sendMatchUpdate. match: ' + match + ' serialized: ' + JSON.stringify(match.serialize()));
     this._socketServer.to(this.getMatchRoomName(match.id)).emit('matchUpdate', match.serialize());
   }
 }
