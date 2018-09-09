@@ -53,10 +53,11 @@ class MatchServer {
         });
 
         socket.on('joinMatch', async (socketData, callback) => {
-          const player = matchServer.getPlayerFromSocketId(socket.id);
+          const player = new MatchPlayer(socket.id);
           player.displayName = socketData.displayName || "default player";
           const result = await matchServer.addPlayerToMatch(socket, player, socketData.matchId);
           if (result["success"]) {
+            matchServer.socketToPlayerMap.set(socket.id, player);
             matchServer.removePlayerFromMatchmaking(socket);
             callback({ success: true, match: matchServer.getMatchFromId(socketData.matchId).serialize() });
           } else {
@@ -164,7 +165,6 @@ class MatchServer {
     this.socketToPlayerMap.delete(player.socketId);
   }
 
-
   private getClientsInRoom(roomId: string): Promise<string[]> {
     return new Promise<string[]>((resolve) => {
       this._socketServer.in(MatchServer.MATCHMAKING_ROOM).clients((error, clients) => {
@@ -201,7 +201,7 @@ class MatchServer {
   }
 
   private sendMatchUpdate(match: Match) {
-    //console.log('sendMatchUpdate. match: ' + match + ' serialized: ' + JSON.stringify(match.serialize()));
+    console.log('sendMatchUpdate. match: ' + match + ' serialized: ' + JSON.stringify(match.serialize()));
     this._socketServer.to(this.getMatchRoomName(match.id)).emit('matchUpdate', match.serialize());
   }
 }

@@ -24,20 +24,26 @@ class MatchPlayer {
     this._socketId = socketId;
     this.points = 0;
     this.placement = -1;
-    this.connectionStatus = ConnectionStatus.Connected; // TODO: implement connecting state?
+    this.connectionStatus = ConnectionStatus.Connected;
     this.scoreboardStatus = ScoreboardStatus.Regular;
     this.playStatus = PlayStatus.Playing;
   }
 
   public flagAsDisconnected() {
+    this.connectionStatus = ConnectionStatus.Disconnected;
+    if (this.playStatus !== PlayStatus.Playing) {
+      return;
+    }
     if (this.currentMatch) {
       this.currentMatch.determinePlacement(this);
     }
-    this.connectionStatus = ConnectionStatus.Disconnected;
     this.playStatus = PlayStatus.Eliminated; 
   }
 
   public flagAsSelfEliminated() {
+    if (this.playStatus !== PlayStatus.Playing) {
+      return;
+    }
     if (this.currentMatch) {
       this.currentMatch.determinePlacement(this);
     }

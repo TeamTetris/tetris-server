@@ -9,7 +9,7 @@ import PlayerUpdate from '../player/playerUpdate';
 
 class Match {
   private static nextMatchId: number = 1000;
-  private static startTimeOffset: number = 10;
+  private static startTimeOffset: number = 3;
   private _id: number;
   private allPlayers: MatchPlayer[];
   private playingPlayers: MatchPlayer[];
@@ -79,7 +79,12 @@ class Match {
     this.sendDataQueued = true;
   }
   
+  private filterPlayingPlayers() {
+    this.playingPlayers = this.playingPlayers.filter(p => p.playStatus === PlayStatus.Playing);
+  }
+
   private calculatePlacements() {
+    this.filterPlayingPlayers();
     console.log('calculcate placement START', this.playingPlayers.map(p => { return { name: p.displayName, points: p.points, placement: p.placement }}));
     this.playingPlayers.sort((a, b) => (b.points - a.points) + 0.0001 * a.displayName.localeCompare(b.displayName));
     for (let i = 0; i < this.playingPlayers.length; i++) {
@@ -98,6 +103,7 @@ class Match {
     const player = this.allPlayers.find(p => p.socketId == playerUpdate.socketId);
     if (!player) {
       console.error('could not find player for received playerupdate. socketId:', playerUpdate.socketId);
+      return;
     }
     const pointsChanged = player.points !== playerUpdate.points;
     player.points = playerUpdate.points;
@@ -149,7 +155,7 @@ class Match {
 
   private generateNextElimination(eliminationOffset: number = 0) {
     const firstTimer = 60;
-    const lastTimer = 10;
+    const lastTimer = 1;
     const remainingPlayers = this.allPlayers.filter(p => p.playStatus == PlayStatus.Playing);
     const t = 1 - remainingPlayers.length / this.maxPlayers;
     const timeUntilElimination = firstTimer * (1 - t) + lastTimer * t;
