@@ -48,12 +48,15 @@ class Match {
     return this.allPlayers.every(player => player.connectionStatus !== ConnectionStatus.Connected);
   }
   
-  public get isJoinable() {
+  public isJoinable(matchPlayer: MatchPlayer): boolean {
+    if (matchPlayer && this.allPlayers.filter(p => p.socketId == matchPlayer.socketId).length > 0) {
+      return false;
+    }
     return this.joinUntil > new Date() && this.allPlayers.length < this.maxPlayers;
   }
 
   public addPlayer(player: MatchPlayer): boolean {
-    if (this.isJoinable) {
+    if (this.isJoinable(player)) {
       if (this.allPlayers.findIndex(p => p == player) > -1) {
         return false;
       }
