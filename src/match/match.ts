@@ -9,7 +9,7 @@ import PlayerUpdate from '../player/playerUpdate';
 
 class Match {
   private static nextMatchId: number = 1000;
-  private static startTimeOffset: number = 3;
+  private static startTimeOffset: number = 10;
   private _id: number;
   private allPlayers: MatchPlayer[];
   private playingPlayers: MatchPlayer[];
@@ -155,10 +155,15 @@ class Match {
 
   private generateNextElimination(eliminationOffset: number = 0) {
     const firstTimer = 60;
-    const lastTimer = 1;
+    const lastTimer = 15;
     const remainingPlayers = this.allPlayers.filter(p => p.playStatus == PlayStatus.Playing);
-    const t = 1 - remainingPlayers.length / this.maxPlayers;
-    const timeUntilElimination = firstTimer * (1 - t) + lastTimer * t;
+    const t = 1 - (remainingPlayers.length - 2) / (this.maxPlayers - 2);
+    let timeUntilElimination;
+    if (this.allPlayers.length === 1) {
+      timeUntilElimination = lastTimer; // singleplayer mode for debugging -> dont instantly finish game
+    } else {
+      timeUntilElimination = firstTimer * (1 - t) + lastTimer * t;
+    }
     const playerAmount = Math.max(1, remainingPlayers.length * 0.1);
 
     const timeUntilEliminationWithOffset = timeUntilElimination + eliminationOffset;
