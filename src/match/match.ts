@@ -157,8 +157,8 @@ class Match {
   }
 
   private generateNextElimination(eliminationOffset: number = 0) {
-    const firstTimer = 60;
-    const lastTimer = 15;
+    const firstTimer = 80;
+    const lastTimer = 20;
     const remainingPlayers = this.allPlayers.filter(p => p.playStatus == PlayStatus.Playing);
     const t = 1 - (remainingPlayers.length - 2) / (this.maxPlayers - 2);
     let timeUntilElimination;
