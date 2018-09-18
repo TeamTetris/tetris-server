@@ -198,7 +198,7 @@ class MatchServer {
   }
 
   private sendMatchUpdate(match: Match) {
-    console.log('sendMatchUpdate. match: ' + match + ' serialized: ' + JSON.stringify(match.serialize()));
+    console.log('sendMatchUpdate ' + new Date());
     this._socketServer.to(this.getMatchRoomName(match.id)).emit('matchUpdate', match.serialize());
   }
 }
