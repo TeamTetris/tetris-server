@@ -9,3 +9,5 @@ package-lock.json
 
 # Mac stuff
 .DS_Store
+
+dist/
