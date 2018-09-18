@@ -1,7 +1,6 @@
 import MatchPlayer from '../player/matchPlayer'
 import Elimination from './elimination';
 import SerializedMatch from './serializedMatch'
-import SerializedMatchPlayer from '../player/serializedMatchPlayer'
 import ConnectionStatus from '../player/connectionStatus';
 import PlayStatus from '../player/playStatus';
 import ScoreboardStatus from '../player/scoreboardStatus';
@@ -9,7 +8,7 @@ import PlayerUpdate from '../player/playerUpdate';
 
 class Match {
   private static nextMatchId: number = 1000;
-  private static startTimeOffset: number = 10;
+  private static startTimeOffset: number = 30;
   private _id: number;
   private allPlayers: MatchPlayer[];
   private playingPlayers: MatchPlayer[];
@@ -135,6 +134,7 @@ class Match {
 
     return {
       id: this.id,
+      currentServerTime: new Date(),
       players: serializedMatchPlayers,
       startTime: this.startTime,
       joinUntil: this.joinUntil,
