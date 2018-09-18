@@ -157,17 +157,9 @@ class Match {
   }
 
   private generateNextElimination(eliminationOffset: number = 0) {
-    const firstTimer = 80;
-    const lastTimer = 20;
     const remainingPlayers = this.allPlayers.filter(p => p.playStatus == PlayStatus.Playing);
-    const t = 1 - (remainingPlayers.length - 2) / (this.maxPlayers - 2);
-    let timeUntilElimination;
-    if (this.allPlayers.length === 1) {
-      timeUntilElimination = lastTimer; // singleplayer mode for debugging -> dont instantly finish game
-    } else {
-      timeUntilElimination = firstTimer * (1 - t) + lastTimer * t;
-    }
-    const playerAmount = Math.max(1, remainingPlayers.length * 0.1);
+    const timeUntilElimination = 30 * 1000;
+    const playerAmount = Math.max(1, Math.floor(remainingPlayers.length * 0.1));
 
     const timeUntilEliminationWithOffset = timeUntilElimination + eliminationOffset;
     this.nextElimination = { playerAmount, time: Match.getFutureDate(timeUntilEliminationWithOffset) };
