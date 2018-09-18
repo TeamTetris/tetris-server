@@ -1,10 +1,7 @@
-import * as socketIo from 'socket.io';
 import * as http from 'http';
 
 import Match from './match/match';
 import MatchPlayer from './player/matchPlayer';
-import ConnectionStatus from './player/connectionStatus';
-import PlayStatus from './player/playStatus';
 
 interface Result {
   success: boolean,
@@ -19,7 +16,7 @@ class MatchServer {
   private static MATCH_ROOM_PREFIX: string = "match-";
   private static MATCHMAKING_ROOM: string = "matchmaking";
   private static MIN_PLAYERS: number = 1;
-  private static MAX_PLAYERS: number = 5;
+  private static MAX_PLAYERS: number = 40;
 
   private socketToPlayerMap: Map<string, MatchPlayer> = new Map<string, MatchPlayer>();
 
@@ -39,7 +36,7 @@ class MatchServer {
         });
 
         socket.on('disconnect', function () {
-          matchServer.removePlayerFromMatchmaking(socket); // TODO: REDUNDANT, socket.io already has sockets leave all rooms on disconnect
+          matchServer.removePlayerFromMatchmaking(socket); 
           matchServer.flagPlayerAsDisconnected(socket); 
         });
 
