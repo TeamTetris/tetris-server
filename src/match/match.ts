@@ -29,17 +29,14 @@ class Match {
     return new Date(Date.now() + 1000 * secondOffset);
   }
 
-  constructor(maxPlayers: number, sendDataToPlayers: Function) {
+  constructor(maxPlayers: number, sendDataToPlayers: Function, startTimeOffset: number = null) {
     this._id = Match.nextMatchId++;
     this.allPlayers = [];
     this.playingPlayers = [];
     this.maxPlayers = maxPlayers;
     this.sendDataQueued = false;
     this._sendDataToPlayers = sendDataToPlayers;
-    this.startTime = Match.getFutureDate(Match.startTimeOffset); 
-    this.joinUntil = Match.getFutureDate(Match.startTimeOffset * 0.75);
-    setTimeout(this.generateNextElimination.bind(this), Match.startTimeOffset * 1000);
-    setTimeout(this.calculatePlacements.bind(this), Match.startTimeOffset * 1000 + 100);
+    this.setRemainingPreGameTime(startTimeOffset || Match.startTimeOffset)
     setInterval(this.sendDataToPlayersIfQueued.bind(this), 200);
   }
 
@@ -68,6 +65,14 @@ class Match {
     } else {
       return false;
     }
+  }
+
+  public setRemainingPreGameTime(time: number) {
+    clearTimeout(this.nextEliminationTimeout);
+    this.startTime = Match.getFutureDate(time); 
+    this.joinUntil = Match.getFutureDate(time * 0.8);
+    this.nextEliminationTimeout = setTimeout(this.generateNextElimination.bind(this), time * 1000);
+    setTimeout(this.calculatePlacements.bind(this), time * 1000 + 100);
   }
 
   private sendDataToPlayersIfQueued() {
@@ -126,7 +131,7 @@ class Match {
         connectionStatus: p.connectionStatus,
         scoreboardStatus: p.scoreboardStatus,
         playStatus: p.playStatus,
-        field: p.field 
+        field: p.field
       };
     });
 

@@ -186,10 +186,18 @@ class MatchServer {
     }
   }
 
-  public createMatch(): Match {
-    const newMatch = new Match(MatchServer.MAX_PLAYERS, this.sendMatchUpdate.bind(this));
+  public createMatch(startTimeOffset: number = null): Match {
+    const newMatch = new Match(MatchServer.MAX_PLAYERS, this.sendMatchUpdate.bind(this), startTimeOffset);
     this._runningMatches.push(newMatch);
     return newMatch;
+  }
+
+  public startAllMatches(): void {
+    this._runningMatches.forEach(m => {
+      if (m.isJoinable) {
+        m.setRemainingPreGameTime(10);
+      }
+    });
   }
 
   private sendMatchUpdate(match: Match) {
