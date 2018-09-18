@@ -87,7 +87,6 @@ class Match {
 
   private calculatePlacements() {
     this.filterPlayingPlayers();
-    console.log('calculcate placement START', this.playingPlayers.map(p => { return { name: p.displayName, points: p.points, placement: p.placement }}));
     this.playingPlayers.sort((a, b) => (b.points - a.points) + 0.0001 * a.displayName.localeCompare(b.displayName));
     for (let i = 0; i < this.playingPlayers.length; i++) {
       this.playingPlayers[i].placement = i + 1;
@@ -98,7 +97,6 @@ class Match {
       }
     }
     this.allPlayers.sort((a, b) => a.placement - b.placement);
-    console.log('calculcate placement FINISHED', this.playingPlayers.map(p => { return { name: p.displayName, points: p.points, placement: p.placement }}));
   }
 
   public receivePlayerUpdate(playerUpdate: PlayerUpdate) {
@@ -149,7 +147,6 @@ class Match {
     if (!this.nextPlacement) {
       this.nextPlacement = this.playingPlayers.length;
     }
-    console.log('PLACEMENT DETERMINED', this.nextPlacement, player.displayName);
     player.placement = this.nextPlacement--;
     this.playingPlayers.splice(this.playingPlayers.findIndex(p => p == player));
     this.calculatePlacements();
@@ -158,7 +155,7 @@ class Match {
 
   private generateNextElimination(eliminationOffset: number = 0) {
     const remainingPlayers = this.allPlayers.filter(p => p.playStatus == PlayStatus.Playing);
-    const timeUntilElimination = 30 * 1000;
+    const timeUntilElimination = 30;
     const playerAmount = Math.max(1, Math.floor(remainingPlayers.length * 0.1));
 
     const timeUntilEliminationWithOffset = timeUntilElimination + eliminationOffset;
@@ -169,13 +166,11 @@ class Match {
   }
   
   private checkForWinner() {
-    console.log('check for winner');
     if (this.playingPlayers.length == 1) {
       this.playingPlayers[0].playStatus = PlayStatus.Won;
       this.playingPlayers[0].scoreboardStatus = ScoreboardStatus.Regular;
       clearTimeout(this.nextEliminationTimeout);
       this.queueSendDataToPlayers();
-      console.log('winner found', this.playingPlayers[0].displayName);
     }
   }
 
