@@ -115,7 +115,7 @@ class MatchServer {
       if (!match) {
         resolve({ success: false, message: 'Match does not exist.' });
       }
-      if (!match.isJoinable(player)) {
+      if (!match.isJoinable()) {
         resolve({ success: false, message: 'Match is not joinable anymore.' });
       }
       socket.join(this.getMatchRoomName(matchId), () => {
@@ -171,7 +171,7 @@ class MatchServer {
     const clientsInMatchmaking = await this.getClientsInRoom(MatchServer.MATCHMAKING_ROOM);
     this._socketServer.to(MatchServer.MATCHMAKING_ROOM).emit('matchmakingUpdate', { 'playersInQueue': clientsInMatchmaking.length });
 
-    const joinableMatch = this._runningMatches.find(match => match.isJoinable(null));
+    const joinableMatch = this._runningMatches.find(match => match.isJoinable());
     if (joinableMatch) {
       console.log('Joinable match found, notifying', triggeringSocket.id);
       this._socketServer.to(triggeringSocket.id).emit('matchReady', joinableMatch.serialize());
