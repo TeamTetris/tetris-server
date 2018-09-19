@@ -41,7 +41,6 @@ class MatchServer {
         });
 
         socket.on('joinMatchmaking', () => {
-          console.log('join matchmaking, socket.id:', socket.id);
           matchServer.addPlayerToMatchmaking(socket);
         });
 
@@ -80,7 +79,6 @@ class MatchServer {
   }
 
   private getJoinedMatchesOfPlayer(socket: SocketIO.Socket): Match[] {
-    console.log('rooms: ',Object.keys(socket.rooms));
     return Object.keys(socket.rooms)
       .filter(b => b.indexOf(MatchServer.MATCH_ROOM_PREFIX) > -1)
       .map(matchId => this.getMatchFromId(Number.parseInt(matchId.substr(MatchServer.MATCH_ROOM_PREFIX.length))));
@@ -88,7 +86,6 @@ class MatchServer {
 
   private isPlayerInMatch(socket): boolean {
     const matches = this.getJoinedMatchesOfPlayer(socket);
-    console.log('player is in matches ', matches);
     if (matches.length > 1) {
       console.error("Player is in more than one match:", socket.id, Object.keys(socket.rooms));
     }
@@ -171,9 +168,7 @@ class MatchServer {
   }
 
   private async runMatchmaking(triggeringSocket: SocketIO.Socket) {
-    console.log('Running matchmaking.');
     const clientsInMatchmaking = await this.getClientsInRoom(MatchServer.MATCHMAKING_ROOM);
-    console.log('clients in matchmaking: ', clientsInMatchmaking);
     this._socketServer.to(MatchServer.MATCHMAKING_ROOM).emit('matchmakingUpdate', { 'playersInQueue': clientsInMatchmaking.length });
 
     const joinableMatch = this._runningMatches.find(match => match.isJoinable(null));
@@ -191,14 +186,21 @@ class MatchServer {
     }
   }
 
-  private createMatch(): Match {
-    const newMatch = new Match(MatchServer.MAX_PLAYERS, this.sendMatchUpdate.bind(this));
+  public createMatch(startTimeOffset: number = null): Match {
+    const newMatch = new Match(MatchServer.MAX_PLAYERS, this.sendMatchUpdate.bind(this), startTimeOffset);
     this._runningMatches.push(newMatch);
     return newMatch;
   }
 
+  public startAllMatches(): void {
+    this._runningMatches.forEach(m => {
+      if (m.isJoinable) {
+        m.setRemainingPreGameTime(10);
+      }
+    });
+  }
+
   private sendMatchUpdate(match: Match) {
-    console.log('sendMatchUpdate ' + new Date());
     this._socketServer.to(this.getMatchRoomName(match.id)).emit('matchUpdate', match.serialize());
   }
 }

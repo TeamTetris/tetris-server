@@ -29,17 +29,14 @@ class Match {
     return new Date(Date.now() + 1000 * secondOffset);
   }
 
-  constructor(maxPlayers: number, sendDataToPlayers: Function) {
+  constructor(maxPlayers: number, sendDataToPlayers: Function, startTimeOffset: number = null) {
     this._id = Match.nextMatchId++;
     this.allPlayers = [];
     this.playingPlayers = [];
     this.maxPlayers = maxPlayers;
     this.sendDataQueued = false;
     this._sendDataToPlayers = sendDataToPlayers;
-    this.startTime = Match.getFutureDate(Match.startTimeOffset); 
-    this.joinUntil = Match.getFutureDate(Match.startTimeOffset * 0.75);
-    setTimeout(this.generateNextElimination.bind(this), Match.startTimeOffset * 1000);
-    setTimeout(this.calculatePlacements.bind(this), Match.startTimeOffset * 1000 + 100);
+    this.setRemainingPreGameTime(startTimeOffset || Match.startTimeOffset)
     setInterval(this.sendDataToPlayersIfQueued.bind(this), 200);
   }
 
@@ -70,6 +67,14 @@ class Match {
     }
   }
 
+  public setRemainingPreGameTime(time: number) {
+    clearTimeout(this.nextEliminationTimeout);
+    this.startTime = Match.getFutureDate(time); 
+    this.joinUntil = Match.getFutureDate(time * 0.8);
+    this.nextEliminationTimeout = setTimeout(this.generateNextElimination.bind(this), time * 1000);
+    setTimeout(this.calculatePlacements.bind(this), time * 1000 + 100);
+  }
+
   private sendDataToPlayersIfQueued() {
     if (this.sendDataQueued) {
       this.sendDataQueued = false;
@@ -87,7 +92,6 @@ class Match {
 
   private calculatePlacements() {
     this.filterPlayingPlayers();
-    console.log('calculcate placement START', this.playingPlayers.map(p => { return { name: p.displayName, points: p.points, placement: p.placement }}));
     this.playingPlayers.sort((a, b) => (b.points - a.points) + 0.0001 * a.displayName.localeCompare(b.displayName));
     for (let i = 0; i < this.playingPlayers.length; i++) {
       this.playingPlayers[i].placement = i + 1;
@@ -98,7 +102,6 @@ class Match {
       }
     }
     this.allPlayers.sort((a, b) => a.placement - b.placement);
-    console.log('calculcate placement FINISHED', this.playingPlayers.map(p => { return { name: p.displayName, points: p.points, placement: p.placement }}));
   }
 
   public receivePlayerUpdate(playerUpdate: PlayerUpdate) {
@@ -128,7 +131,7 @@ class Match {
         connectionStatus: p.connectionStatus,
         scoreboardStatus: p.scoreboardStatus,
         playStatus: p.playStatus,
-        field: p.field 
+        field: p.field
       };
     });
 
@@ -149,7 +152,6 @@ class Match {
     if (!this.nextPlacement) {
       this.nextPlacement = this.playingPlayers.length;
     }
-    console.log('PLACEMENT DETERMINED', this.nextPlacement, player.displayName);
     player.placement = this.nextPlacement--;
     this.playingPlayers.splice(this.playingPlayers.findIndex(p => p == player));
     this.calculatePlacements();
@@ -157,17 +159,9 @@ class Match {
   }
 
   private generateNextElimination(eliminationOffset: number = 0) {
-    const firstTimer = 80;
-    const lastTimer = 20;
     const remainingPlayers = this.allPlayers.filter(p => p.playStatus == PlayStatus.Playing);
-    const t = 1 - (remainingPlayers.length - 2) / (this.maxPlayers - 2);
-    let timeUntilElimination;
-    if (this.allPlayers.length === 1) {
-      timeUntilElimination = lastTimer; // singleplayer mode for debugging -> dont instantly finish game
-    } else {
-      timeUntilElimination = firstTimer * (1 - t) + lastTimer * t;
-    }
-    const playerAmount = Math.max(1, remainingPlayers.length * 0.1);
+    const timeUntilElimination = 30;
+    const playerAmount = Math.max(1, Math.floor(remainingPlayers.length * 0.1));
 
     const timeUntilEliminationWithOffset = timeUntilElimination + eliminationOffset;
     this.nextElimination = { playerAmount, time: Match.getFutureDate(timeUntilEliminationWithOffset) };
@@ -177,13 +171,11 @@ class Match {
   }
   
   private checkForWinner() {
-    console.log('check for winner');
     if (this.playingPlayers.length == 1) {
       this.playingPlayers[0].playStatus = PlayStatus.Won;
       this.playingPlayers[0].scoreboardStatus = ScoreboardStatus.Regular;
       clearTimeout(this.nextEliminationTimeout);
       this.queueSendDataToPlayers();
-      console.log('winner found', this.playingPlayers[0].displayName);
     }
   }
 

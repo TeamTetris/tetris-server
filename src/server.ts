@@ -22,6 +22,16 @@ class Server {
     this._expressApp.get('/', (req, res) => {
       res.send("Server is running");
     });
+
+    this._expressApp.get('/longgame', (req, res) => {
+      this._matchServer.createMatch(300);
+      res.send('success');
+    });
+
+    this._expressApp.get('/startall', (req, res) => {
+      this._matchServer.startAllMatches();
+      res.send('success');
+    })
   }
 }
 
