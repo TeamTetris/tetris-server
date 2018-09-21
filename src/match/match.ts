@@ -44,18 +44,20 @@ class Match {
     return this.allPlayers.every(player => player.connectionStatus !== ConnectionStatus.Connected);
   }
   
-  public isJoinable(matchPlayer: MatchPlayer): boolean {
-    if (matchPlayer && this.allPlayers.filter(p => p.socketId == matchPlayer.socketId).length > 0) {
-      return false;
-    }
+  public isJoinable(): boolean {
     return this.joinUntil > new Date() && this.allPlayers.length < this.maxPlayers;
   }
 
+  private removePlayer(player: MatchPlayer): void {
+    this.allPlayers.splice(this.allPlayers.findIndex(p => p == player));
+    this.playingPlayers.splice(this.playingPlayers.findIndex(p => p == player));
+    this.queueSendDataToPlayers();
+  }
+
   public addPlayer(player: MatchPlayer): boolean {
-    if (this.isJoinable(player)) {
-      if (this.allPlayers.findIndex(p => p == player) > -1) {
-        return false;
-      }
+    if (this.isJoinable()) {
+      const identicalPlayers = this.allPlayers.filter(p => p.socketId == player.socketId);
+      identicalPlayers.forEach(this.removePlayer.bind(this));
       this.allPlayers.push(player);
       this.playingPlayers.push(player);
       this.calculatePlacements();
