@@ -57,9 +57,7 @@ class Match {
   public addPlayer(player: MatchPlayer): boolean {
     if (this.isJoinable()) {
       const identicalPlayers = this.allPlayers.filter(p => p.socketId == player.socketId);
-      if (identicalPlayers.length > 0) {
-        identicalPlayers.forEach(function(p: MatchPlayer) { this.removePlayer(p); }.bind(this))
-      }
+      identicalPlayers.forEach(this.removePlayer.bind(this));
       this.allPlayers.push(player);
       this.playingPlayers.push(player);
       this.calculatePlacements();
