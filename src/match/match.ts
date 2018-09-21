@@ -75,6 +75,7 @@ class Match {
     this.joinUntil = Match.getFutureDate(time * 0.8);
     this.nextEliminationTimeout = setTimeout(this.generateNextElimination.bind(this), time * 1000);
     setTimeout(this.calculatePlacements.bind(this), time * 1000 + 100);
+    this.queueSendDataToPlayers();
   }
 
   private sendDataToPlayersIfQueued() {
