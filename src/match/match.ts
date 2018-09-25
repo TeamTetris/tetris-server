@@ -149,6 +149,11 @@ class Match {
   }
 
   public determinePlacement(player: MatchPlayer, playStatus: PlayStatus) {
+    if (this.startTime > new Date()) {
+      this.removePlayer(player);
+      this.calculatePlacements();
+      return;
+    }
     if (player.playStatus === PlayStatus.Playing) {
       if (!this.nextPlacement) {
         this.nextPlacement = this.playingPlayers.length;
