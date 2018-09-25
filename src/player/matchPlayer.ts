@@ -35,9 +35,8 @@ class MatchPlayer {
       return;
     }
     if (this.currentMatch) {
-      this.currentMatch.determinePlacement(this);
+      this.currentMatch.determinePlacement(this, PlayStatus.Eliminated);
     }
-    this.playStatus = PlayStatus.Eliminated; 
   }
 
   public flagAsSelfEliminated() {
@@ -45,9 +44,8 @@ class MatchPlayer {
       return;
     }
     if (this.currentMatch) {
-      this.currentMatch.determinePlacement(this);
+      this.currentMatch.determinePlacement(this, PlayStatus.Eliminated);
     }
-    this.playStatus = PlayStatus.Eliminated;
   }
 }
 
