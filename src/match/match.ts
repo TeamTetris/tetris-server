@@ -148,15 +148,15 @@ class Match {
     }
   }
 
-  public determinePlacement(player: MatchPlayer) {
-    if (player.playStatus !== PlayStatus.Playing) {
-      return;
+  public determinePlacement(player: MatchPlayer, playStatus: PlayStatus) {
+    if (player.playStatus === PlayStatus.Playing) {
+      if (!this.nextPlacement) {
+        this.nextPlacement = this.playingPlayers.length;
+      }
+      player.placement = this.nextPlacement--;
+      this.playingPlayers.splice(this.playingPlayers.findIndex(p => p == player), 1);
+      player.playStatus = playStatus;
     }
-    if (!this.nextPlacement) {
-      this.nextPlacement = this.playingPlayers.length;
-    }
-    player.placement = this.nextPlacement--;
-    this.playingPlayers.splice(this.playingPlayers.findIndex(p => p == player));
     this.calculatePlacements();
     this.checkForWinner();
   }
@@ -193,9 +193,8 @@ class Match {
 
     for (let player of this.allPlayers) {
       if (player.placement > placementCutoff) {
-        player.playStatus = PlayStatus.Eliminated;
         player.scoreboardStatus = ScoreboardStatus.Regular;
-        this.determinePlacement(player);
+        this.determinePlacement(player, PlayStatus.Eliminated);
       }
       if (lastElimination && player.placement == 1) {
         player.playStatus = PlayStatus.Won;
