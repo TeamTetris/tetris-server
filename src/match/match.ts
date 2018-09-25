@@ -49,8 +49,8 @@ class Match {
   }
 
   private removePlayer(player: MatchPlayer): void {
-    this.allPlayers.splice(this.allPlayers.findIndex(p => p == player));
-    this.playingPlayers.splice(this.playingPlayers.findIndex(p => p == player));
+    this.allPlayers.splice(this.allPlayers.findIndex(p => p == player), 1);
+    this.playingPlayers.splice(this.playingPlayers.findIndex(p => p == player), 1);
     this.queueSendDataToPlayers();
   }
 
